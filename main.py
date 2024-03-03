@@ -5,16 +5,16 @@ from openai import OpenAI
 import time
 
 # GPT CLEAN SEARCH INPUT OF USER
-def clean_input_gpt(termes_brute):
+def clean_user_input(raw_terms):
     client = OpenAI(
         api_key="",
-        )
+    )
     completion = client.chat.completions.create(
-    model="gpt-3.5-turbo",
-    messages=[
-        {"role": "system", "content": "Tu sert a dire en maximum 5 mot tout ce que tu recevra. Exmple : User : Qui est alpha Wann et quel sont ses albums. Toi : Biographie Alpha Wann et Album - User : 'Qui est Damso' Toi : 'Damso'. Enft tu doit dire en 5 mot tout ce qu'ont te donne, garde les termes important de ce que tu recois"},
-        {"role": "user", "content": termes_brute}
-    ]
+        model="gpt-3.5-turbo",
+        messages=[
+            {"role": "system", "content": ""},
+            {"role": "user", "content": raw_terms}
+        ]
     )
 
     clean_terms = completion.choices[0].message.content
@@ -22,17 +22,17 @@ def clean_input_gpt(termes_brute):
     return clean_terms
 
 
-# GPT RESUME ARTCILE INFORMATION
-def resumegpt(article):
+# GPT RESUME ARTICLE INFORMATION
+def resume_article(article):
     client = OpenAI(
         api_key="",
-        )
+    )
     completion = client.chat.completions.create(
-    model="gpt-3.5-turbo",
-    messages=[
-        {"role": "system", "content": "Tu sert a resumé tout ce qu'ont te donne en moins de 100mots. Ce qui te serra donné c'est des donnée extrait d'un site web, donc ne prend pas en compte les contenus et balise HTML, Traduit et Parle uniquement en français, Ecris 2 phrase qui resume l'article et par la suite met en liste toute les information importante des articles que tu lit. Si la page web que tu reçois n'a pas de texte exploitable"},
-        {"role": "user", "content": article}
-    ]
+        model="gpt-3.5-turbo",
+        messages=[
+            {"role": "system", "content": ""},
+            {"role": "user", "content": article}
+        ]
     )
 
     message_content = completion.choices[0].message.content
@@ -47,70 +47,65 @@ def google_search(search_term, api_key, cse_id, **kwargs):
         'q': search_term,
         'key': api_key,
         'cx': cse_id,
-        'num':1
+        'num': 1
     }
     params.update(kwargs)
     response = requests.get(service_url, params=params)
-    return json.loads(response.text) 
+    return json.loads(response.text)
 
 
-def search(search_clean_terms):
-    results = google_search(search_clean_terms,'','')
-
+def perform_search(clean_terms):
+    results = google_search(clean_terms, '', '')
 
     for result in results['items']:
-        lien = result['link']
-    return lien
+        link = result['link']
+    return link
 
 
-# BS4 VIEWS IN LINK GENERATE WITH GOOGLE SEARCH API
-def views_page_with_bs4(link_search_g):
-    try :
-        url = link_search_g
+# BS4 VIEWS IN LINK GENERATED WITH GOOGLE SEARCH API
+def view_page_with_bs4(search_link):
+    try:
+        url = search_link
 
         r = requests.get(url)
         if r.status_code == 200:
             html = r.content
             soup = BeautifulSoup(html, 'html5lib')
-            try :
+            try:
                 body = soup.find('body')
-                article_brute = [tag.get_text() for tag in body.find_all(['h1', 'h2', 'h3', 'p', 'span'])]
-                article = str(article_brute)
+                article_raw = [tag.get_text() for tag in body.find_all(['h1', 'h2', 'h3', 'p', 'span'])]
+                article = str(article_raw)
             except:
-                print('Error view article')
+                print('Error viewing article')
         else:
-            print('Error link')
+            print('Error in link')
             print(r.status_code)
 
         return article
 
     except:
-        print('ERROR View page')
-
+        print('ERROR viewing page')
 
 
 # START SCRIPT
 while True:
     t = time.time()
     while True:
-        search_input_brute = input('Search : ')
-        if search_input_brute:
-            clean_term = clean_input_gpt(search_input_brute)
-            print(clean_term)
+        raw_search_input = input('Search: ')
+        if raw_search_input:
+            clean_terms = clean_user_input(raw_search_input)
+            print(clean_terms)
             break
         else:
             continue
-            
-    link_search  = search(clean_term)
 
-    article = views_page_with_bs4(link_search)
+    search_link = perform_search(clean_terms)
+
+    article = view_page_with_bs4(search_link)
     print('\n -------------------- \n')
-    resumegpt(article)
+    resume_article(article)
     print('\n -------------------- \n')
     t2 = time.time()
-    s = f'{int(t - t2)} secondes'
+    s = f'{int(t2 - t)} seconds'
     print('\n')
     print(s)
-
-
-
